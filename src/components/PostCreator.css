@@ -1,0 +1,37 @@
+.post-creator {
+  background: #232527;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.post-creator__input {
+  flex: 1;
+  background: #181a1b;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  padding: 12px 16px;
+  outline: none;
+}
+
+.post-creator__btn {
+  background: #fff;
+  color: #181a1b;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.post-creator__btn:hover {
+  background: #4c7aff;
+  color: #fff;
+}

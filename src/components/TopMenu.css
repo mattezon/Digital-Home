@@ -1,0 +1,25 @@
+.topmenu {
+  display: flex;
+  gap: 8px;
+  background: #e6eaff;
+  border-radius: 12px;
+  padding: 4px 12px;
+  margin-bottom: 24px;
+  margin-top: 16px;
+}
+
+ .topmenu__tab {
+  color: #444;
+  text-decoration: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+ .topmenu__tab.active,
+ .topmenu__tab:hover {
+  background: #fff;
+  color: #222;
+}
