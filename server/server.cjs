@@ -14,7 +14,8 @@ const startServer = async () => {
     await connectDB();
     console.log('✅ MongoDB подключена\n');
 
-    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+    const FRONTEND_URL = process.env.FRONTEND_URL || 'https://digital-home.onrender.com';
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', FRONTEND_URL];
     const origin = (originValue, callback) => {
       if (!originValue || allowedOrigins.includes(originValue)) {
         callback(null, true);
