@@ -9,12 +9,12 @@ import '../components/PostCreator.css'
 import '../components/PostCard.css'
 import '../pages/Profile.css'
 
-const MainPage = () => {
+const MainPage = ({ theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState('feed')
 
   return (
     <div className="main-layout">
-      <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} theme={theme} toggleTheme={toggleTheme} />
       <div className="main-content">
         {activeTab === 'feed' ? (
           <>

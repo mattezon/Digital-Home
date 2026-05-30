@@ -1,14 +1,34 @@
 const User = require('../models/User.cjs');
 const jwt = require('jsonwebtoken');
 
-const generateToken = (userId) => {
+const createAccessToken = (userId) => {
   return jwt.sign(
     { id: userId },
     process.env.JWT_SECRET || 'digital-home-secret',
     {
-      expiresIn: process.env.JWT_EXPIRE || '7d'
+      expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
     }
   );
+};
+
+const createRefreshToken = (userId) => {
+  return jwt.sign(
+    { id: userId },
+    process.env.JWT_REFRESH_SECRET || 'digital-home-refresh-secret',
+    {
+      expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
+    }
+  );
+};
+
+const sendRefreshToken = (res, token) => {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/api/auth',
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
 };
 
 // @desc    Регистрация пользователя
@@ -41,7 +61,10 @@ exports.register = async (req, res) => {
     }
 
     const newUser = await User.create({ email, password });
-    const token = generateToken(newUser._id);
+    const token = createAccessToken(newUser._id);
+    const refreshToken = createRefreshToken(newUser._id);
+
+    sendRefreshToken(res, refreshToken);
 
     console.log(`✅ Зарегистрирован пользователь: ${email}`);
 
@@ -86,7 +109,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id);
+    const token = createAccessToken(user._id);
+    const refreshToken = createRefreshToken(user._id);
+
+    sendRefreshToken(res, refreshToken);
 
     console.log(`✅ Вход пользователя: ${email}`);
 
@@ -106,5 +132,68 @@ exports.login = async (req, res) => {
       message: error.message
     });
   }
+};
+
+// @desc    Обновление access-токена
+// @route   POST /api/auth/refresh
+// @access  Public
+exports.refreshToken = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Нет refresh токена'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || 'digital-home-refresh-secret');
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+
+    const newToken = createAccessToken(user._id);
+    const newRefreshToken = createRefreshToken(user._id);
+
+    sendRefreshToken(res, newRefreshToken);
+
+    return res.status(200).json({
+      success: true,
+      token: newToken,
+      user: {
+        id: user._id,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Refresh token error:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Неверный refresh токен'
+    });
+  }
+};
+
+// @desc    Выход пользователя
+// @route   POST /api/auth/logout
+// @access  Public
+exports.logout = (req, res) => {
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/api/auth'
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: 'Успешный выход'
+  });
 };
 

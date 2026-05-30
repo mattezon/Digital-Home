@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import axios from 'axios'
 
+axios.defaults.baseURL = 'http://localhost:5000'
+axios.defaults.withCredentials = true
+
 const getStoredToken = () => {
   try {
     return localStorage.getItem('jwtToken')
@@ -54,7 +57,7 @@ const useAuthStore = create((set, get) => ({
   register: async (email, password, passwordConfirm) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post('/api/auth/register', {
         email,
         password,
         passwordConfirm
@@ -75,7 +78,7 @@ const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post('/api/auth/login', {
         email,
         password
       })
@@ -91,8 +94,31 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
+  refreshToken: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await axios.post('/api/auth/refresh')
+
+      if (response.data.success) {
+        get().setAuth(response.data.user, response.data.token)
+        return { success: true }
+      }
+    } catch (error) {
+      get().logout()
+      return { success: false }
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
   // Выход
-  logout: () => {
+  logout: async () => {
+    try {
+      await axios.post('/api/auth/logout')
+    } catch (error) {
+      // ignore
+    }
+
     try {
       localStorage.removeItem('jwtToken')
       localStorage.removeItem('user')

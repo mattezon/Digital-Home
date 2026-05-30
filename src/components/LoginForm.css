@@ -3,15 +3,13 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: radial-gradient(circle at top left, rgba(76, 122, 255, 0.14), transparent 30%),
-              radial-gradient(circle at bottom right, rgba(0, 113, 233, 0.12), transparent 25%),
-              #f3f7fc;
+  background: var(--body-bg);
 }
 
 .login-card {
   width: min(420px, 100%);
-  background: #ffffff;
-  border: 1px solid rgba(27, 33, 48, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 24px;
   box-shadow: 0 28px 70px rgba(42, 73, 117, 0.12);
   padding: 36px;
@@ -21,12 +19,12 @@
   margin: 0 0 8px;
   font-size: 2rem;
   letter-spacing: -0.04em;
-  color: #1b2130;
+  color: var(--text);
 }
 
 .login-card__header p {
   margin: 0;
-  color: #5b6678;
+  color: var(--muted);
   line-height: 1.6;
 }
 
@@ -40,7 +38,7 @@
   display: grid;
   gap: 8px;
   font-size: 0.95rem;
-  color: #2f384d;
+  color: var(--text);
 }
 
 .field span {
@@ -51,26 +49,26 @@
   width: 100%;
   min-height: 48px;
   padding: 12px 14px;
-  border: 1px solid #d7dfe9;
+  border: 1px solid var(--border);
   border-radius: 14px;
-  background: #f9fbff;
-  color: #1f293a;
+  background: var(--input-bg);
+  color: var(--input-text);
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .field input:focus {
   outline: none;
-  border-color: #4c7aff;
+  border-color: var(--primary);
   box-shadow: 0 0 0 4px rgba(76, 122, 255, 0.12);
 }
 
 .error-message {
   padding: 12px 14px;
-  background: #fee2e2;
-  border: 1px solid #fca5a5;
+  background: var(--danger-bg);
+  border: 1px solid rgba(252, 165, 165, 0.7);
   border-radius: 14px;
-  color: #991b1b;
+  color: var(--danger);
   font-size: 0.95rem;
   margin-bottom: 8px;
 }
@@ -84,7 +82,7 @@
 }
 
 .link-muted {
-  color: #4c7aff;
+  color: var(--primary);
   text-decoration: none;
   font-size: 0.95rem;
 }
@@ -98,8 +96,8 @@
   padding: 14px 20px;
   border: none;
   border-radius: 14px;
-  background: #2f5dff;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--primary-contrast);
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
@@ -107,7 +105,7 @@
 }
 
 .button:hover:not(:disabled) {
-  background: #174ed9;
+  background: var(--primary);
   transform: translateY(-1px);
 }
 
@@ -120,12 +118,12 @@
 .register-hint {
   margin: 28px 0 0;
   font-size: 0.95rem;
-  color: #5b6678;
+  color: var(--muted);
   text-align: center;
 }
 
 .register-hint a {
-  color: #4c7aff;
+  color: var(--primary);
   text-decoration: none;
   font-weight: 600;
 }
@@ -147,6 +145,4 @@
   .button {
     width: 100%;
   }
-}
-  background: rgba(76, 122, 255, 0.05);
 }

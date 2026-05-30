@@ -24,26 +24,26 @@
 }
 
 .dashboard__card {
-  background: white;
+  background: var(--surface);
   border-radius: 12px;
   padding: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--card-shadow);
 }
 
 .dashboard__card h2 {
   margin: 0 0 1rem 0;
-  color: #333;
+  color: var(--text);
 }
 
 .dashboard__card p {
-  color: #666;
+  color: var(--muted);
   margin: 0.5rem 0;
 }
 
 .dashboard__user-email {
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border);
 }
 
 .dashboard__placeholder {
@@ -51,18 +51,18 @@
   border-radius: 12px;
   padding: 3rem;
   text-align: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--card-shadow);
 }
 
 .dashboard__placeholder p {
-  color: #666;
+  color: var(--muted);
   font-size: 1.1rem;
   margin: 0;
 }
 
 .dashboard__coming-soon {
   margin-top: 1rem !important;
-  color: #999 !important;
+  color: var(--muted) !important;
   font-style: italic;
 }
 

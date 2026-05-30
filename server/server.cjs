@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/database.cjs');
 
 // Загрузить переменные окружения
@@ -12,15 +14,38 @@ const startServer = async () => {
     await connectDB();
     console.log('✅ MongoDB подключена\n');
 
+    const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+    const origin = (originValue, callback) => {
+      if (!originValue || allowedOrigins.includes(originValue)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    };
+
     const app = express();
 
-    // Middleware
+    app.use(cors({
+      origin,
+      credentials: true
+    }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
-    app.use(cors());
+    app.use(cookieParser());
+
+    const authLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        success: false,
+        message: 'Слишком много запросов. Повторите попытку позже.'
+      }
+    });
 
     // Маршруты API
-    app.use('/api/auth', require('./routes/auth.cjs'));
+    app.use('/api/auth', authLimiter, require('./routes/auth.cjs'));
     app.use('/api/posts', require('./routes/posts.cjs'));
     app.use('/api/db', require('./routes/db.cjs'));
 
@@ -50,7 +75,7 @@ const startServer = async () => {
 ║  🚀 Сервер Digital Home запущен!           ║
 ║  📍 http://localhost:${PORT}                     ║
 ║                                            ║
-║  🔐 Демо учетные данные:                   ║
+║  🔐 Демо учетные данные:                  
 ║     Email: demo@example.com                ║
 ║     Пароль: password123                    ║
 ╚════════════════════════════════════════════╝

@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
-import RegisterForm from './RegisterForm'
 import './LoginForm.css'
 
 const LoginForm = () => {
@@ -9,7 +9,6 @@ const LoginForm = () => {
     password: ''
   })
   const [error, setError] = useState('')
-  const [isRegisterMode, setIsRegisterMode] = useState(false)
   const { login, isLoading } = useAuthStore()
 
   const handleChange = (e) => {
@@ -28,10 +27,6 @@ const LoginForm = () => {
     if (!result.success) {
       setError(result.message)
     }
-  }
-
-  if (isRegisterMode) {
-    return <RegisterForm onSwitchToLogin={() => setIsRegisterMode(false)} />
   }
 
   return (
@@ -78,10 +73,7 @@ const LoginForm = () => {
         </form>
 
         <p className="register-hint">
-          Еще нет аккаунта? <a href="#" onClick={(e) => {
-            e.preventDefault()
-            setIsRegisterMode(true)
-          }}>Создать аккаунт</a>
+          Еще нет аккаунта? <Link to="/register">Создать аккаунт</Link>
         </p>
       </section>
     </main>

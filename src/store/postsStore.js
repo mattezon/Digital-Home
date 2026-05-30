@@ -19,7 +19,7 @@ const usePostsStore = create((set, get) => ({
   fetchPosts: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await axios.get('http://localhost:5000/api/posts')
+      const response = await axios.get('/api/posts')
 
       if (response.data.success) {
         set({
@@ -39,7 +39,7 @@ const usePostsStore = create((set, get) => ({
   createPost: async (text, image = null) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await axios.post('http://localhost:5000/api/posts', {
+      const response = await axios.post('/api/posts', {
         text,
         image
       })
@@ -62,7 +62,7 @@ const usePostsStore = create((set, get) => ({
   // Удалить пост
   deletePost: async (postId) => {
     try {
-      const response = await axios.delete(`http://localhost:5000/api/posts/${postId}`)
+      const response = await axios.delete(`/api/posts/${postId}`)
 
       if (response.data.success) {
         set({
@@ -80,7 +80,7 @@ const usePostsStore = create((set, get) => ({
   // Получить комментарии поста
   fetchComments: async (postId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/posts/${postId}/comments`)
+      const response = await axios.get(`/api/posts/${postId}/comments`)
       if (response.data.success) {
         set({
           commentsByPost: {
@@ -100,7 +100,7 @@ const usePostsStore = create((set, get) => ({
   // Получить реакцию пользователя на пост
   getUserReaction: async (postId) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/posts/${postId}/user-reaction`)
+      const response = await axios.get(`/api/posts/${postId}/user-reaction`)
       if (response.data.success) {
         set({
           userReactions: {
@@ -111,7 +111,6 @@ const usePostsStore = create((set, get) => ({
         return response.data.userReaction
       }
     } catch (error) {
-      // Игнорируем ошибки, если пользователь не авторизован
       return null
     }
   },
@@ -119,7 +118,7 @@ const usePostsStore = create((set, get) => ({
   // Добавить комментарий
   createComment: async (postId, text) => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/posts/${postId}/comments`, { text })
+      const response = await axios.post(`/api/posts/${postId}/comments`, { text })
 
       if (response.data.success) {
         set({
@@ -147,7 +146,7 @@ const usePostsStore = create((set, get) => ({
   // Удалить комментарий
   deleteComment: async (postId, commentId) => {
     try {
-      const response = await axios.delete(`http://localhost:5000/api/posts/${postId}/comments/${commentId}`)
+      const response = await axios.delete(`/api/posts/${postId}/comments/${commentId}`)
 
       if (response.data.success) {
         set({
@@ -172,7 +171,7 @@ const usePostsStore = create((set, get) => ({
   // Добавить реакцию
   reactToPost: async (postId, type) => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/posts/${postId}/react`, { type })
+      const response = await axios.post(`/api/posts/${postId}/react`, { type })
 
       if (response.data.success) {
         set({
@@ -197,7 +196,7 @@ const usePostsStore = create((set, get) => ({
   // Лайкнуть пост
   likePost: async (postId) => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/posts/${postId}/like`)
+      const response = await axios.post(`/api/posts/${postId}/like`)
 
       if (response.data.success) {
         set({

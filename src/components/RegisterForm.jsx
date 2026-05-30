@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import './LoginForm.css'
 
-const RegisterForm = ({ onSwitchToLogin }) => {
+const RegisterForm = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -22,7 +23,6 @@ const RegisterForm = ({ onSwitchToLogin }) => {
     e.preventDefault()
     setError('')
 
-    // Валидация на фронте
     if (formData.password.length < 6) {
       setError('Пароль должен быть не менее 6 символов')
       return
@@ -99,10 +99,7 @@ const RegisterForm = ({ onSwitchToLogin }) => {
         </form>
 
         <p className="register-hint">
-          Уже есть аккаунт? <a href="#" onClick={(e) => {
-            e.preventDefault()
-            onSwitchToLogin()
-          }}>Войти</a>
+          Уже есть аккаунт? <Link to="/login">Войти</Link>
         </p>
       </section>
     </main>

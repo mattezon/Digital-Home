@@ -1,6 +1,6 @@
 import './Sidebar.css'
 
-const Sidebar = ({ activeTab, onChangeTab }) => (
+const Sidebar = ({ activeTab, onChangeTab, theme, toggleTheme }) => (
   <aside className="sidebar">
     <div className="sidebar__logo">digital home <span className="sidebar__version">v1.1</span></div>
     <nav className="sidebar__nav">
@@ -25,6 +25,14 @@ const Sidebar = ({ activeTab, onChangeTab }) => (
         Профиль
       </a>
     </nav>
+    <button
+      className="sidebar__theme-toggle"
+      type="button"
+      onClick={toggleTheme}
+      aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'}
+    >
+      {theme === 'light' ? '🌙' : '☀️'}
+    </button>
   </aside>
 )
 
