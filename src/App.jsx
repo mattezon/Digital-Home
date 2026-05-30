@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import useAuthStore from './store/authStore'
 import LoginForm from './components/LoginForm'
 import RegisterForm from './components/RegisterForm'
@@ -9,12 +9,14 @@ import Dashboard from './pages/Dashboard'
 import './App.css'
 
 function App() {
-  const { isAuthenticated, isLoading, refreshToken } = useAuthStore()
+  const { isAuthenticated, isLoading, refreshToken, token } = useAuthStore()
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
 
   useEffect(() => {
-    refreshToken()
-  }, [refreshToken])
+    if (!token) {
+      refreshToken()
+    }
+  }, [refreshToken, token])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -30,7 +32,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="app">
         <Routes>
           <Route
@@ -60,7 +62,7 @@ function App() {
           <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
         </Routes>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 

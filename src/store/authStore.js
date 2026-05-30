@@ -105,7 +105,9 @@ const useAuthStore = create((set, get) => ({
         return { success: true }
       }
     } catch (error) {
-      get().logout()
+      if (!get().token) {
+        await get().logout()
+      }
       return { success: false }
     } finally {
       set({ isLoading: false })
