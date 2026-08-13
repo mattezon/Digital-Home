@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import PostCard from './PostCard'
 import usePostsStore from '../store/postsStore'
 import useAuthStore from '../store/authStore'
+import { getAuthorDisplayName } from '../utils/userName'
 
 const PostList = () => {
   const { posts, fetchPosts, isLoading, deletePost } = usePostsStore()
@@ -30,7 +31,7 @@ const PostList = () => {
             post={{
               ...post,
               avatar: '👤',
-              author: post.author?.email || 'Неизвестный'
+              author: getAuthorDisplayName(post.author)
             }}
             isOwner={isOwner}
             onDelete={isOwner ? () => deletePost(post._id) : undefined}

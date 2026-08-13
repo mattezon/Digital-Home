@@ -2,13 +2,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { io } from 'socket.io-client'
 import useAuthStore from '../store/authStore'
+import { getAuthorDisplayName } from '../utils/userName'
 import './ChatPanel.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
 
 const ChatPanel = () => {
-  const { user } = useAuthStore()
+  const { user, token } = useAuthStore()
   const socketRef = useRef(null)
+  const activeChatIdRef = useRef(null)
+  const joinedRoomRef = useRef(null)
   const [chats, setChats] = useState([])
   const [messagesByChat, setMessagesByChat] = useState({})
   const [search, setSearch] = useState('')
@@ -30,16 +33,33 @@ const ChatPanel = () => {
     [activeChatId, messagesByChat]
   )
 
+  const formatPreview = (message) => {
+    if (!message) return ''
+    const author = message.sender ? getAuthorDisplayName(message.sender) : 'User'
+    const text = message.text && message.text.trim() ? message.text : 'Файл'
+    return message.sender?.id === user?.id ? `Вы: ${text}` : `${author}: ${text}`
+  }
+
   const getLastMessagePreview = (chat) => {
+    // Сначала lastMessage с сервера (актуально для всех чатов, включая неоткрытые)
+    if (chat.lastMessage?.id && chat.lastMessage.text) {
+      return formatPreview(chat.lastMessage)
+    }
+
+    // Запасной вариант — последнее из загруженных сообщений
     const chatMessages = messagesByChat[chat.id] || []
-    if (!chatMessages.length) return 'Пока нет сообщений'
+    const lastMessage = chatMessages.length ? chatMessages[chatMessages.length - 1] : null
+    if (!lastMessage) return 'Пока нет сообщений'
+    return formatPreview(lastMessage)
+  }
 
-    const lastFromMe = [...chatMessages].reverse().find((message) => message.sender?.id === user?.id)
-    const lastMessage = lastFromMe || [...chatMessages].reverse()[0]
-    const author = lastMessage.sender?.displayName || lastMessage.sender?.username || 'User'
-    const text = lastMessage.text || 'Файл'
+  const getDirectChatTitle = (chat) => {
+    if (!chat) return 'Чат'
+    if (chat.type !== 'direct') return chat.title || 'Групповой чат'
 
-    return lastMessage.sender?.id === user?.id ? `Вы: ${text}` : `${author}: ${text}`
+    const other = (chat.participants || []).find((participant) => participant?.id !== user?.id)
+    if (other) return other.displayName || other.username || other.email?.split('@')[0] || 'Чат'
+    return chat.title || 'Чат'
   }
 
   const refreshChats = async () => {
@@ -71,7 +91,24 @@ const ChatPanel = () => {
     })
   }
 
-  const loadMessages = async (chatId, replace = true) => {
+  const updateChatPreview = (chatId, message) => {
+    setChats((prev) =>
+      prev.map((chat) => {
+        if (chat.id !== chatId) return chat
+        return {
+          ...chat,
+          lastMessage: {
+            id: message.id,
+            text: message.text,
+            sender: message.sender || null,
+            createdAt: message.createdAt || null
+          }
+        }
+      })
+    )
+  }
+
+  const loadMessages = async (chatId) => {
     if (!chatId) return
 
     try {
@@ -82,10 +119,6 @@ const ChatPanel = () => {
           ...prev,
           [chatId]: nextMessages
         }))
-
-        if (replace && activeChatId === chatId) {
-          // no-op, kept for explicit use
-        }
       }
     } catch (error) {
       console.warn('Не удалось загрузить сообщения', error)
@@ -192,11 +225,21 @@ const ChatPanel = () => {
 
     const socket = io(API_BASE, {
       transports: ['websocket'],
-      reconnection: true
+      reconnection: true,
+      auth: { token }
     })
 
     socketRef.current = socket
-    socket.on('connect', () => setConnected(true))
+
+    const onConnect = () => {
+      setConnected(true)
+      // После (пере)подключения повторно входим в активную комнату
+      if (activeChatIdRef.current) {
+        socket.emit('join-room', activeChatIdRef.current)
+      }
+    }
+
+    socket.on('connect', onConnect)
     socket.on('disconnect', () => setConnected(false))
 
     socket.on('chat:message', (payload) => {
@@ -205,22 +248,35 @@ const ChatPanel = () => {
       const incomingMessage = {
         id: payload.id,
         text: payload.text,
-        sender: payload.sender || { id: payload.userId || 'server', username: 'server' },
+        sender: payload.sender || { id: payload.userId || 'server', username: 'server', showUsername: true },
         createdAt: payload.createdAt || new Date().toISOString()
       }
 
       appendMessageToChat(payload.chatId, incomingMessage)
+      updateChatPreview(payload.chatId, incomingMessage)
     })
 
     return () => {
+      socket.off('connect', onConnect)
       socket.disconnect()
     }
-  }, [user])
+  }, [user, token])
 
   useEffect(() => {
-    if (!activeChatId) return
+    if (!activeChatId) {
+      activeChatIdRef.current = null
+      return
+    }
+
+    // Покидаем предыдущую комнату
+    if (joinedRoomRef.current && joinedRoomRef.current !== activeChatId) {
+      socketRef.current?.emit('leave-room', joinedRoomRef.current)
+    }
+
+    activeChatIdRef.current = activeChatId
+    joinedRoomRef.current = activeChatId
     socketRef.current?.emit('join-room', activeChatId)
-    loadMessages(activeChatId, true)
+    loadMessages(activeChatId)
   }, [activeChatId])
 
   useEffect(() => {
@@ -231,7 +287,7 @@ const ChatPanel = () => {
     return () => clearTimeout(timer)
   }, [search])
 
-  const chatTitle = activeChat ? activeChat.title : 'Выберите чат'
+  const chatTitle = activeChat ? getDirectChatTitle(activeChat) : 'Выберите чат'
 
   return (
     <section className="chat-panel messenger-shell">
@@ -321,7 +377,7 @@ const ChatPanel = () => {
                 onClick={() => setActiveChatId(chat.id)}
               >
                 <div className="chat-panel__chat-main">
-                  <span className="chat-panel__chat-name">{chat.title || 'Чат'}</span>
+                  <span className="chat-panel__chat-name">{getDirectChatTitle(chat)}</span>
                   <small className="chat-panel__chat-preview">{getLastMessagePreview(chat)}</small>
                 </div>
                 <span className="chat-panel__chat-badge">{chat.type === 'group' ? 'G' : 'D'}</span>
@@ -341,10 +397,12 @@ const ChatPanel = () => {
               <div className="chat-panel__window-header">
                 <div>
                   <strong>{chatTitle}</strong>
-                  <small>{connected ? 'Онлайн' : 'Оффлайн'}</small>
                 </div>
-                <span className={`chat-panel__status ${connected ? 'online' : 'offline'}`}>
-                  {connected ? 'online' : 'offline'}
+                <span
+                  className={`chat-panel__status ${connected ? 'online' : 'offline'}`}
+                  title={connected ? 'Соединение с сервером активно' : 'Нет соединения с сервером'}
+                >
+                  {connected ? 'Подключено' : 'Нет соединения'}
                 </span>
               </div>
 
@@ -357,7 +415,7 @@ const ChatPanel = () => {
                       key={message.id}
                       className={`chat-panel__message ${message.sender?.id === user?.id ? 'self' : ''}`}
                     >
-                      <span>{message.sender?.displayName || message.sender?.username || 'User'}</span>
+                      <span>{message.sender ? getAuthorDisplayName(message.sender) : 'User'}</span>
                       <p>{message.text}</p>
                     </div>
                   ))

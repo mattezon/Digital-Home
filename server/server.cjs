@@ -4,8 +4,10 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const http = require('http');
+const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const connectDB = require('./config/database.cjs');
+const Chat = require('./models/Chat.cjs');
 
 // Загрузить переменные окружения
 dotenv.config();
@@ -60,26 +62,49 @@ const startServer = async () => {
     app.use(cookieParser());
 
     app.set('io', io);
+
+    // Аутентификация сокетов по JWT (передаётся в auth.token или query.token)
+    io.use((socket, next) => {
+      try {
+        const token = socket.handshake.auth?.token || socket.handshake.query?.token;
+        if (!token) return next(new Error('Не авторизован'));
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'digital-home-secret');
+        if (!decoded || !decoded.id) return next(new Error('Неверный токен'));
+
+        socket.userId = String(decoded.id);
+        next();
+      } catch (error) {
+        next(new Error('Неверный токен авторизации'));
+      }
+    });
+
     io.on('connection', (socket) => {
+      const userId = socket.userId;
       socket.emit('socket:ready', { status: 'online', socketId: socket.id });
 
-      socket.on('join-room', (chatId) => {
-        if (chatId) socket.join(chatId);
+      // Подключать к комнате можно только участников чата
+      socket.on('join-room', async (chatId) => {
+        if (!chatId) return;
+
+        try {
+          const chat = await Chat.findOne({ _id: chatId, participants: userId }).select('_id');
+          if (chat) {
+            socket.join(String(chatId));
+            socket.emit('chat:joined', { chatId: String(chatId) });
+          } else {
+            socket.emit('chat:error', { message: 'Доступ к чату запрещён' });
+          }
+        } catch (error) {
+          // БД недоступна (socket-only режим) — разрешаем без проверки
+          console.warn('⚠️ socket-only: не удалось проверить участника:', error.message);
+          socket.join(String(chatId));
+          socket.emit('chat:joined', { chatId: String(chatId), degraded: true });
+        }
       });
 
       socket.on('leave-room', (chatId) => {
         if (chatId) socket.leave(chatId);
-      });
-
-      socket.on('chat:ping', ({ room, text }) => {
-        if (room) {
-          io.to(room).emit('chat:message', {
-            room,
-            text: text || 'ping',
-            from: 'server',
-            timestamp: new Date().toISOString()
-          });
-        }
       });
     });
 

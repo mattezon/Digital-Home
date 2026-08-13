@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema(
         return this.username || this.email?.split('@')[0] || '';
       }
     },
+    showUsername: {
+      type: Boolean,
+      default: true
+    },
     password: {
       type: String,
       required: [true, 'Пожалуйста, укажите пароль'],

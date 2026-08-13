@@ -80,7 +80,8 @@ exports.register = async (req, res) => {
         id: newUser._id,
         email: newUser.email,
         username: newUser.username,
-        displayName: newUser.displayName || newUser.username
+        displayName: newUser.displayName || newUser.username,
+        showUsername: newUser.showUsername ?? true
       }
     });
   } catch (error) {
@@ -130,7 +131,8 @@ exports.login = async (req, res) => {
         id: user._id,
         email: user.email,
         username: user.username || user.email.split('@')[0],
-        displayName: user.displayName || user.username || user.email.split('@')[0]
+        displayName: user.displayName || user.username || user.email.split('@')[0],
+        showUsername: user.showUsername ?? true
       }
     });
   } catch (error) {
@@ -178,7 +180,8 @@ exports.refreshToken = async (req, res) => {
         id: user._id,
         email: user.email,
         username: user.username || user.email.split('@')[0],
-        displayName: user.displayName || user.username || user.email.split('@')[0]
+        displayName: user.displayName || user.username || user.email.split('@')[0],
+        showUsername: user.showUsername ?? true
       }
     });
   } catch (error) {
@@ -205,5 +208,72 @@ exports.logout = (req, res) => {
     success: true,
     message: 'Успешный выход'
   });
+};
+
+// @desc    Обновить профиль (юзернейм + как отображать имя)
+// @route   PUT /api/auth/profile
+// @access  Private
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { username, showUsername } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const hasUsername = username !== undefined && username !== null && String(username).trim().length > 0;
+    const hasShowUsername = typeof showUsername === 'boolean';
+
+    if (!hasUsername && !hasShowUsername) {
+      return res.status(400).json({ success: false, message: 'Нет данных для обновления' });
+    }
+
+    if (hasUsername) {
+      const normalized = String(username).trim().toLowerCase();
+
+      if (!/^[a-zA-Z0-9_.-]+$/.test(normalized)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Юзернейм может содержать только латинские буквы, цифры и символы _ . -'
+        });
+      }
+
+      if (normalized.length < 3 || normalized.length > 20) {
+        return res.status(400).json({ success: false, message: 'Юзернейм должен быть длиной от 3 до 20 символов' });
+      }
+
+      const taken = await User.findOne({ username: normalized, _id: { $ne: userId } });
+      if (taken) {
+        return res.status(409).json({ success: false, message: 'Этот юзернейм уже занят' });
+      }
+
+      // Юзернейм — это «ник» для поиска в сообщениях, поэтому синхронизируем и displayName
+      user.username = normalized;
+      user.displayName = normalized;
+    }
+
+    if (hasShowUsername) {
+      user.showUsername = showUsername;
+    }
+
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: 'Профиль обновлён',
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName || user.username,
+        showUsername: user.showUsername ?? true
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
 };
 

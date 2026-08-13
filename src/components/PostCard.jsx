@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import usePostsStore from '../store/postsStore'
 import useAuthStore from '../store/authStore'
+import { getAuthorDisplayName } from '../utils/userName'
 import './PostCard.css'
 
 const reactionIcons = {
@@ -126,7 +127,7 @@ const PostCard = ({ post, isOwner, onDelete }) => {
                 return (
                   <div key={comment._id} className="post-card__comment-item">
                     <div className="post-card__comment-top">
-                      <div className="post-card__comment-author">{comment.author?.email || 'Пользователь'}</div>
+                      <div className="post-card__comment-author">{getAuthorDisplayName(comment.author)}</div>
                       {canDeleteComment && (
                         <button
                           type="button"

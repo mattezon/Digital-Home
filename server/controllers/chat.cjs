@@ -3,12 +3,26 @@ const Message = require('../models/Message.cjs');
 const User = require('../models/User.cjs');
 const { normalizeChatQuery, matchChatSearch } = require('../utils/chatSearch.cjs');
 
+const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const serializeUser = (user) => ({
   id: user?._id?.toString?.() || user?.id || null,
   email: user?.email || '',
   username: user?.username || user?.email?.split('@')[0] || '',
-  displayName: user?.displayName || user?.email?.split('@')[0] || ''
+  displayName: user?.displayName || user?.email?.split('@')[0] || '',
+  showUsername: user?.showUsername ?? true
 });
+
+const serializeLastMessage = (lastMessage) => {
+  if (!lastMessage || !lastMessage._id) return null;
+
+  return {
+    id: lastMessage._id?.toString?.() || lastMessage.id || null,
+    text: lastMessage.text || '',
+    sender: serializeUser(lastMessage.sender),
+    createdAt: lastMessage.createdAt || null
+  };
+};
 
 const serializeChat = (chat, currentUserId) => {
   const participants = Array.isArray(chat?.participants) ? chat.participants : [];
@@ -20,10 +34,9 @@ const serializeChat = (chat, currentUserId) => {
     createdBy: chat?.createdBy ? chat.createdBy.toString() : null,
     participants: participants.map((user) => serializeUser(user)),
     participantIds: participants.map((user) => user?._id?.toString?.() || user?.id || user),
-    lastMessage: chat?.lastMessage || null,
+    lastMessage: serializeLastMessage(chat?.lastMessage),
     updatedAt: chat?.updatedAt,
-    createdAt: chat?.createdAt,
-    isMine: chat?.createdBy ? chat.createdBy.toString() === currentUserId : false
+    createdAt: chat?.createdAt
   };
 };
 
@@ -37,8 +50,8 @@ exports.getChats = async (req, res) => {
     const userId = req.user?.id;
 
     const chats = await Chat.find({ participants: userId })
-      .populate('participants', '_id email username displayName')
-      .populate('lastMessage')
+      .populate('participants', '_id email username displayName showUsername')
+      .populate({ path: 'lastMessage', populate: { path: 'sender', select: '_id email username displayName showUsername' } })
       .sort({ updatedAt: -1 });
 
     return res.json({
@@ -59,18 +72,18 @@ exports.searchUsersAndChats = async (req, res) => {
     const safeQuery = normalized.value.trim();
     const userFilter = safeQuery
       ? { $or: [
-          { email: { $regex: safeQuery, $options: 'i' } },
-          { username: { $regex: safeQuery, $options: 'i' } },
-          { displayName: { $regex: safeQuery, $options: 'i' } }
+          { email: { $regex: escapeRegex(safeQuery), $options: 'i' } },
+          { username: { $regex: escapeRegex(safeQuery), $options: 'i' } },
+          { displayName: { $regex: escapeRegex(safeQuery), $options: 'i' } }
         ] }
       : {};
 
     const users = await User.find({ _id: { $ne: currentUserId }, ...userFilter })
       .limit(10)
-      .select('_id email username displayName');
+      .select('_id email username displayName showUsername');
 
     const existingChats = await Chat.find({ participants: currentUserId })
-      .populate('participants', '_id email username displayName');
+      .populate('participants', '_id email username displayName showUsername');
 
     const matchedChats = safeQuery ? matchChatSearch(q, existingChats, currentUserId).matches : [];
 
@@ -129,7 +142,7 @@ exports.createDirectChat = async (req, res) => {
     const existing = await Chat.findOne({
       type: 'direct',
       participants: { $all: [currentUserId, userId], $size: 2 }
-    }).populate('participants', '_id email username displayName');
+    }).populate('participants', '_id email username displayName showUsername');
 
     if (existing) {
       return res.status(200).json({ success: true, chat: serializeChat(existing, currentUserId), created: false });
@@ -142,7 +155,7 @@ exports.createDirectChat = async (req, res) => {
       createdBy: currentUserId
     });
 
-    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName');
+    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName showUsername');
     return res.status(201).json({ success: true, chat: serializeChat(populated, currentUserId), created: true });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -167,7 +180,7 @@ exports.createGroupChat = async (req, res) => {
       createdBy: currentUserId
     });
 
-    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName');
+    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName showUsername');
     return res.status(201).json({ success: true, chat: serializeChat(populated, currentUserId), created: true });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -185,7 +198,7 @@ exports.getChatMessages = async (req, res) => {
     }
 
     const messages = await Message.find({ chat: chatId })
-      .populate('sender', '_id email username displayName')
+      .populate('sender', '_id email username displayName showUsername')
       .sort({ createdAt: 1 });
 
     return res.json({
@@ -226,11 +239,25 @@ exports.sendMessage = async (req, res) => {
     });
 
     chat.lastMessage = message._id;
-    chat.title = chat.title || 'Новый чат';
+
+    if (!chat.title) {
+      if (chat.type === 'direct') {
+        const otherParticipantId = (chat.participants || [])
+          .map((participant) => String(participant))
+          .find((id) => id !== String(userId));
+        const otherUser = otherParticipantId
+          ? await User.findById(otherParticipantId).select('_id email username displayName showUsername')
+          : null;
+        chat.title = getUserName(otherUser) || 'Новый чат';
+      } else {
+        chat.title = 'Новый чат';
+      }
+    }
+
     chat.updatedAt = new Date();
     await chat.save();
 
-    const populated = await Message.findById(message._id).populate('sender', '_id email username displayName');
+    const populated = await Message.findById(message._id).populate('sender', '_id email username displayName showUsername');
     const payload = {
       id: populated._id.toString(),
       text: populated.text,

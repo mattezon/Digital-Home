@@ -138,6 +138,43 @@ const useAuthStore = create((set, get) => ({
     })
   },
 
+  // Обновить профиль (юзернейм + как отображать имя)
+  updateProfile: async ({ username, showUsername } = {}) => {
+    set({ isLoading: true, error: null })
+
+    const payload = {}
+    if (username !== undefined && username !== null && String(username).trim()) {
+      payload.username = String(username).trim()
+    }
+    if (typeof showUsername === 'boolean') {
+      payload.showUsername = showUsername
+    }
+
+    try {
+      const response = await axios.put('/api/auth/profile', payload)
+
+      if (response.data.success) {
+        const updatedUser = response.data.user
+        try {
+          localStorage.setItem('user', JSON.stringify(updatedUser))
+        } catch (error) {
+          console.warn('Не удалось сохранить пользователя в localStorage', error)
+        }
+
+        set({
+          user: updatedUser,
+          isLoading: false,
+          error: null
+        })
+        return { success: true }
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Ошибка при обновлении профиля'
+      set({ error: message, isLoading: false })
+      return { success: false, message }
+    }
+  },
+
   // Очистить ошибку
   clearError: () => {
     set({ error: null })
@@ -145,3 +182,62 @@ const useAuthStore = create((set, get) => ({
 }))
 
 export default useAuthStore
+
+// ---------------------------------------------------------------------------
+// Автоматическое обновление access-токена при ответе 401 (jwt expired и т.п.)
+// ---------------------------------------------------------------------------
+let refreshPromise = null
+
+const refreshSession = async () => {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post('/api/auth/refresh')
+      .then((response) => {
+        if (response.data?.success) {
+          // Обновляем store + localStorage + Authorization header
+          useAuthStore.getState().setAuth(response.data.user, response.data.token)
+          return response.data.token
+        }
+        throw new Error('Не удалось обновить access-токен')
+      })
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
+}
+
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config || {}
+    const status = error.response?.status
+    const url = typeof config.url === 'string' ? config.url : ''
+    const isAuthRequest = url.includes('/api/auth/')
+
+    // Не трогаем запросы /api/auth/* (иначе зацикливание на логине/refresh),
+    // повторяем только один раз на запрос.
+    if (
+      status === 401 &&
+      !config._retried &&
+      !isAuthRequest &&
+      useAuthStore.getState().token
+    ) {
+      config._retried = true
+
+      try {
+        const token = await refreshSession()
+        config.headers = {
+          ...(config.headers || {}),
+          Authorization: `Bearer ${token}`
+        }
+        return axios(config)
+      } catch (refreshError) {
+        await useAuthStore.getState().logout()
+        return Promise.reject(refreshError)
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
