@@ -9,6 +9,23 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true
     },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+      default: function () {
+        return this.email ? this.email.split('@')[0] : undefined;
+      }
+    },
+    displayName: {
+      type: String,
+      trim: true,
+      default: function () {
+        return this.username || this.email?.split('@')[0] || '';
+      }
+    },
     password: {
       type: String,
       required: [true, 'Пожалуйста, укажите пароль'],

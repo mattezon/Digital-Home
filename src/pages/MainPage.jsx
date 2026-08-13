@@ -3,6 +3,7 @@ import Sidebar from '../components/Sidebar'
 import PostCreator from '../components/PostCreator'
 import PostList from '../components/PostList'
 import Profile from './Profile'
+import ChatPanel from '../components/ChatPanel'
 import '../App.css'
 import '../components/Sidebar.css'
 import '../components/PostCreator.css'
@@ -15,13 +16,19 @@ const MainPage = ({ theme, toggleTheme }) => {
   return (
     <div className="main-layout">
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} theme={theme} toggleTheme={toggleTheme} />
-      <div className="main-content">
-        {activeTab === 'feed' ? (
+      <div className={`main-content ${activeTab === 'messages' ? 'main-content--messages' : ''}`}>
+        {activeTab === 'feed' && (
           <>
             <PostCreator />
             <PostList />
           </>
-        ) : (
+        )}
+
+        {activeTab === 'messages' && (
+          <ChatPanel />
+        )}
+
+        {activeTab === 'profile' && (
           <Profile />
         )}
       </div>

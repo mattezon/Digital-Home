@@ -15,6 +15,16 @@ const Sidebar = ({ activeTab, onChangeTab, theme, toggleTheme }) => (
         Лента
       </a>
       <a
+        className={`sidebar__nav-link ${activeTab === 'messages' ? 'active' : ''}`}
+        href="#"
+        onClick={(e) => {
+          e.preventDefault()
+          onChangeTab('messages')
+        }}
+      >
+        Сообщения
+      </a>
+      <a
         className={`sidebar__nav-link ${activeTab === 'profile' ? 'active' : ''}`}
         href="#"
         onClick={(e) => {

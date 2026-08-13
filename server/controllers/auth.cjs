@@ -1,12 +1,15 @@
 const User = require('../models/User.cjs');
 const jwt = require('jsonwebtoken');
 
+const DEFAULT_ACCESS_EXPIRE = '14d';
+const DEFAULT_REFRESH_EXPIRE = '30d';
+
 const createAccessToken = (userId) => {
   return jwt.sign(
     { id: userId },
     process.env.JWT_SECRET || 'digital-home-secret',
     {
-      expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+      expiresIn: process.env.JWT_ACCESS_EXPIRE || DEFAULT_ACCESS_EXPIRE
     }
   );
 };
@@ -16,7 +19,7 @@ const createRefreshToken = (userId) => {
     { id: userId },
     process.env.JWT_REFRESH_SECRET || 'digital-home-refresh-secret',
     {
-      expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
+      expiresIn: process.env.JWT_REFRESH_EXPIRE || DEFAULT_REFRESH_EXPIRE
     }
   );
 };
@@ -27,7 +30,7 @@ const sendRefreshToken = (res, token) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     path: '/api/auth',
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    maxAge: 30 * 24 * 60 * 60 * 1000
   });
 };
 
@@ -60,7 +63,8 @@ exports.register = async (req, res) => {
       });
     }
 
-    const newUser = await User.create({ email, password });
+    const username = email.split('@')[0];
+    const newUser = await User.create({ email, password, username, displayName: username });
     const token = createAccessToken(newUser._id);
     const refreshToken = createRefreshToken(newUser._id);
 
@@ -74,7 +78,9 @@ exports.register = async (req, res) => {
       token,
       user: {
         id: newUser._id,
-        email: newUser.email
+        email: newUser.email,
+        username: newUser.username,
+        displayName: newUser.displayName || newUser.username
       }
     });
   } catch (error) {
@@ -122,7 +128,9 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        email: user.email
+        email: user.email,
+        username: user.username || user.email.split('@')[0],
+        displayName: user.displayName || user.username || user.email.split('@')[0]
       }
     });
   } catch (error) {
@@ -168,7 +176,9 @@ exports.refreshToken = async (req, res) => {
       token: newToken,
       user: {
         id: user._id,
-        email: user.email
+        email: user.email,
+        username: user.username || user.email.split('@')[0],
+        displayName: user.displayName || user.username || user.email.split('@')[0]
       }
     });
   } catch (error) {

@@ -1,0 +1,254 @@
+const Chat = require('../models/Chat.cjs');
+const Message = require('../models/Message.cjs');
+const User = require('../models/User.cjs');
+const { normalizeChatQuery, matchChatSearch } = require('../utils/chatSearch.cjs');
+
+const serializeUser = (user) => ({
+  id: user?._id?.toString?.() || user?.id || null,
+  email: user?.email || '',
+  username: user?.username || user?.email?.split('@')[0] || '',
+  displayName: user?.displayName || user?.email?.split('@')[0] || ''
+});
+
+const serializeChat = (chat, currentUserId) => {
+  const participants = Array.isArray(chat?.participants) ? chat.participants : [];
+
+  return {
+    id: chat?._id?.toString?.() || chat?.id || null,
+    type: chat?.type || 'direct',
+    title: chat?.title || '',
+    createdBy: chat?.createdBy ? chat.createdBy.toString() : null,
+    participants: participants.map((user) => serializeUser(user)),
+    participantIds: participants.map((user) => user?._id?.toString?.() || user?.id || user),
+    lastMessage: chat?.lastMessage || null,
+    updatedAt: chat?.updatedAt,
+    createdAt: chat?.createdAt,
+    isMine: chat?.createdBy ? chat.createdBy.toString() === currentUserId : false
+  };
+};
+
+const getUserName = (user) => {
+  if (!user) return '';
+  return user.username || user.displayName || user.email?.split('@')[0] || '';
+};
+
+exports.getChats = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    const chats = await Chat.find({ participants: userId })
+      .populate('participants', '_id email username displayName')
+      .populate('lastMessage')
+      .sort({ updatedAt: -1 });
+
+    return res.json({
+      success: true,
+      chats: chats.map((chat) => serializeChat(chat, userId))
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.searchUsersAndChats = async (req, res) => {
+  try {
+    const { q = '' } = req.query;
+    const currentUserId = req.user?.id;
+    const normalized = normalizeChatQuery(q);
+
+    const safeQuery = normalized.value.trim();
+    const userFilter = safeQuery
+      ? { $or: [
+          { email: { $regex: safeQuery, $options: 'i' } },
+          { username: { $regex: safeQuery, $options: 'i' } },
+          { displayName: { $regex: safeQuery, $options: 'i' } }
+        ] }
+      : {};
+
+    const users = await User.find({ _id: { $ne: currentUserId }, ...userFilter })
+      .limit(10)
+      .select('_id email username displayName');
+
+    const existingChats = await Chat.find({ participants: currentUserId })
+      .populate('participants', '_id email username displayName');
+
+    const matchedChats = safeQuery ? matchChatSearch(q, existingChats, currentUserId).matches : [];
+
+    const directMatches = users.map((user) => ({
+      type: 'user',
+      id: user._id.toString(),
+      name: getUserName(user),
+      username: user.username || user.email?.split('@')[0],
+      email: user.email,
+      isCurrentUser: false,
+      searchKey: `@${(user.username || user.email?.split('@')[0] || user._id.toString()).toLowerCase()}`,
+      searchId: `#${user._id.toString()}`
+    }));
+
+    const chatMatches = matchedChats.map((chat) => serializeChat(chat, currentUserId));
+
+    return res.json({
+      success: true,
+      query: q,
+      normalized,
+      users: directMatches,
+      chats: chatMatches,
+      combined: [
+        ...directMatches,
+        ...chatMatches.map((chat) => ({
+          type: 'chat',
+          ...chat,
+          name: chat.title || 'Чат',
+          searchKey: `@${chat.title || ''}`.toLowerCase()
+        }))
+      ]
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.createDirectChat = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const currentUserId = req.user?.id;
+
+    if (!userId || !currentUserId) {
+      return res.status(400).json({ success: false, message: 'Не указан пользователь' });
+    }
+
+    if (userId === currentUserId) {
+      return res.status(400).json({ success: false, message: 'Нельзя создать чат с самим собой' });
+    }
+
+    const targetUser = await User.findById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const existing = await Chat.findOne({
+      type: 'direct',
+      participants: { $all: [currentUserId, userId], $size: 2 }
+    }).populate('participants', '_id email username displayName');
+
+    if (existing) {
+      return res.status(200).json({ success: true, chat: serializeChat(existing, currentUserId), created: false });
+    }
+
+    const chat = await Chat.create({
+      type: 'direct',
+      title: getUserName(targetUser),
+      participants: [currentUserId, userId],
+      createdBy: currentUserId
+    });
+
+    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName');
+    return res.status(201).json({ success: true, chat: serializeChat(populated, currentUserId), created: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.createGroupChat = async (req, res) => {
+  try {
+    const { title, participantIds = [] } = req.body;
+    const currentUserId = req.user?.id;
+
+    if (!title || !title.trim()) {
+      return res.status(400).json({ success: false, message: 'Укажите название группы' });
+    }
+
+    const uniqueIds = Array.from(new Set([currentUserId, ...participantIds.filter(Boolean)]));
+
+    const chat = await Chat.create({
+      type: 'group',
+      title: title.trim(),
+      participants: uniqueIds,
+      createdBy: currentUserId
+    });
+
+    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName');
+    return res.status(201).json({ success: true, chat: serializeChat(populated, currentUserId), created: true });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getChatMessages = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const userId = req.user?.id;
+
+    const chat = await Chat.findOne({ _id: chatId, participants: userId });
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Чат не найден' });
+    }
+
+    const messages = await Message.find({ chat: chatId })
+      .populate('sender', '_id email username displayName')
+      .sort({ createdAt: 1 });
+
+    return res.json({
+      success: true,
+      chat: serializeChat(chat, userId),
+      messages: messages.map((message) => ({
+        id: message._id.toString(),
+        text: message.text,
+        sender: serializeUser(message.sender),
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.sendMessage = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { text } = req.body;
+    const userId = req.user?.id;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, message: 'Введите текст сообщения' });
+    }
+
+    const chat = await Chat.findOne({ _id: chatId, participants: userId });
+    if (!chat) {
+      return res.status(404).json({ success: false, message: 'Чат не найден' });
+    }
+
+    const message = await Message.create({
+      chat: chatId,
+      sender: userId,
+      text: text.trim()
+    });
+
+    chat.lastMessage = message._id;
+    chat.title = chat.title || 'Новый чат';
+    chat.updatedAt = new Date();
+    await chat.save();
+
+    const populated = await Message.findById(message._id).populate('sender', '_id email username displayName');
+    const payload = {
+      id: populated._id.toString(),
+      text: populated.text,
+      sender: serializeUser(populated.sender),
+      chatId: chatId,
+      createdAt: populated.createdAt
+    };
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(chatId).emit('chat:message', payload);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: payload
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};

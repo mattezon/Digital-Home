@@ -10,6 +10,11 @@ const protect = async (req, res, next) => {
   }
 
   if (!token) {
+    console.warn('❌ Нет токена в запросе', {
+      auth: !!authHeader,
+      headers: Object.keys(req.headers),
+      cookies: req.headers.cookie
+    })
     return res.status(401).json({
       success: false,
       message: 'Не авторизован'
@@ -21,6 +26,7 @@ const protect = async (req, res, next) => {
     const user = await User.findById(decoded.id)
 
     if (!user) {
+      console.warn('❌ Пользователь не найден по ID:', decoded.id)
       return res.status(401).json({
         success: false,
         message: 'Пользователь не найден'
@@ -30,6 +36,7 @@ const protect = async (req, res, next) => {
     req.user = { id: user._id.toString(), email: user.email }
     next()
   } catch (error) {
+    console.warn('❌ Ошибка проверки токена:', error.message)
     return res.status(401).json({
       success: false,
       message: 'Неверный токен авторизации'
