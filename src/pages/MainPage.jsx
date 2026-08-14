@@ -1,9 +1,10 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import PostCreator from '../components/PostCreator'
 import PostList from '../components/PostList'
 import Profile from './Profile'
 import ChatPanel from '../components/ChatPanel'
+import UsersList from '../components/UsersList'
 import '../App.css'
 import '../components/Sidebar.css'
 import '../components/PostCreator.css'
@@ -21,6 +22,7 @@ const MainPage = ({ theme, toggleTheme }) => {
           <>
             <PostCreator />
             <PostList />
+            <UsersList />
           </>
         )}
 
