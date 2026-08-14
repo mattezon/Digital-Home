@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import { io } from 'socket.io-client'
 import useAuthStore from '../store/authStore'
@@ -290,9 +290,10 @@ const ChatPanel = () => {
   }, [activeChatId])
 
   useEffect(() => {
+    // Debounce: запрос каждый раз, когда пользователь перестаёт печатать на полсекунды
     const timer = setTimeout(() => {
       searchUsersAndChats(search)
-    }, 250)
+    }, 500)
 
     return () => clearTimeout(timer)
   }, [search])
