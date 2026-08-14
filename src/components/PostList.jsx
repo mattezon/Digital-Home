@@ -7,6 +7,7 @@ import { getAuthorDisplayName } from '../utils/userName'
 const PostList = () => {
   const { posts, fetchPosts, isLoading, deletePost } = usePostsStore()
   const { user } = useAuthStore()
+  const isModerator = user?.moderator === true
 
   useEffect(() => {
     fetchPosts()
@@ -41,7 +42,8 @@ const PostList = () => {
             }}
             accentColor={rawAuthor?.color}
             isOwner={isOwner}
-            onDelete={isOwner ? () => deletePost(post._id) : undefined}
+            isModerator={isModerator}
+            onDelete={(isOwner || isModerator) ? () => deletePost(post._id) : undefined}
           />
         )
       })}

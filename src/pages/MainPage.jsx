@@ -5,6 +5,7 @@ import PostList from '../components/PostList'
 import Profile from './Profile'
 import ChatPanel from '../components/ChatPanel'
 import UsersList from '../components/UsersList'
+import ModerationPage from './ModerationPage'
 import '../App.css'
 import '../components/Sidebar.css'
 import '../components/PostCreator.css'
@@ -32,6 +33,10 @@ const MainPage = ({ theme, toggleTheme }) => {
 
         {activeTab === 'profile' && (
           <Profile />
+        )}
+
+        {activeTab === 'admin' && (
+          <ModerationPage />
         )}
       </div>
     </div>

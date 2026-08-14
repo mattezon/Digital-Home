@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -121,9 +121,10 @@ const startServer = async () => {
 
     // Маршруты API
     app.use('/api/auth', authLimiter, require('./routes/auth.cjs'));
-    app.use('/api/posts', require('./routes/posts.cjs'));
+        app.use('/api/posts', require('./routes/posts.cjs'));
     app.use('/api/chats', require('./routes/chat.cjs'));
     app.use('/api/db', require('./routes/db.cjs'));
+    app.use('/api/users', require('./routes/users.cjs'));
 
     // Обработка 404
     app.use((req, res) => {

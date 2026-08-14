@@ -144,6 +144,17 @@ exports.updatePost = async (req, res) => {
       });
     }
 
+    const userId = req.user?.id;
+    const isModerator = req.user?.moderator;
+
+    // Модератор может редактировать любой пост
+    if (!userId || (post.author.toString() !== String(userId) && !isModerator)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Нет доступа к изменению этого поста'
+      });
+    }
+
     post.text = text ?? post.text;
     post.image = image !== undefined ? image : post.image;
 
@@ -179,12 +190,15 @@ exports.deletePost = async (req, res) => {
       });
     }
 
-    if (!userId || post.author.toString() !== userId) {
+    const isModerator = req.user?.moderator;
+    if (!userId || (post.author.toString() !== String(userId) && !isModerator)) {
       return res.status(403).json({
         success: false,
         message: 'Нет доступа к удалению этого поста'
       });
     }
+
+    await Comment.deleteMany({ post: post._id });
 
     await post.deleteOne();
 

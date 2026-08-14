@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const bcryptjs = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
@@ -34,6 +34,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: null
+    },
+    moderator: {
+      type: Boolean,
+      default: false,
+      // Право модератора назначается ТОЛЬКО через БД (moderator: true).
+      // API-обновление профиля (auth/profile) и эндпоинты управления
+      // пользователями не принимают и не меняют это поле.
     },
     password: {
       type: String,

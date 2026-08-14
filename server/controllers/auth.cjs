@@ -1,4 +1,4 @@
-const User = require('../models/User.cjs');
+﻿const User = require('../models/User.cjs');
 const jwt = require('jsonwebtoken');
 
 const DEFAULT_ACCESS_EXPIRE = '14d';
@@ -82,7 +82,8 @@ exports.register = async (req, res) => {
         username: newUser.username,
         displayName: newUser.displayName || newUser.username,
         showUsername: newUser.showUsername ?? true,
-        color: newUser.color || null
+        color: newUser.color || null,
+        moderator: newUser.moderator || false
       }
     });
   } catch (error) {
@@ -134,7 +135,8 @@ exports.login = async (req, res) => {
         username: user.username || user.email.split('@')[0],
         displayName: user.displayName || user.username || user.email.split('@')[0],
         showUsername: user.showUsername ?? true,
-        color: user.color || null
+        color: user.color || null,
+        moderator: user.moderator || false
       }
     });
   } catch (error) {
@@ -184,7 +186,8 @@ exports.refreshToken = async (req, res) => {
         username: user.username || user.email.split('@')[0],
         displayName: user.displayName || user.username || user.email.split('@')[0],
         showUsername: user.showUsername ?? true,
-        color: user.color || null
+        color: user.color || null,
+        moderator: user.moderator || false
       }
     });
   } catch (error) {
@@ -281,7 +284,8 @@ exports.updateProfile = async (req, res) => {
         username: user.username,
         displayName: user.displayName || user.username,
         showUsername: user.showUsername ?? true,
-        color: user.color || null
+        color: user.color || null,
+        moderator: user.moderator || false
       }
     });
   } catch (error) {

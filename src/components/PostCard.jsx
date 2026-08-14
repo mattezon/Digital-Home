@@ -13,7 +13,7 @@ const reactionIcons = {
   angry: '😡'
 }
 
-const PostCard = ({ post, isOwner, onDelete, accentColor }) => {
+const PostCard = ({ post, isOwner, onDelete, accentColor, isModerator }) => {
   const { user } = useAuthStore()
   const { commentsByPost, fetchComments, createComment, deleteComment, reactToPost, getUserReaction, userReactions } = usePostsStore()
   const [commentsOpen, setCommentsOpen] = useState(false)
@@ -97,7 +97,7 @@ const PostCard = ({ post, isOwner, onDelete, accentColor }) => {
           💬 {post.comments || 0}
         </button>
         <span className="post-card__share">↗️ {post.shares}</span>
-        {isOwner && (
+        {(isOwner || isModerator) && (
           <button className="post-card__delete" onClick={onDelete}>
             🗑️
           </button>

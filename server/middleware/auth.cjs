@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken')
+﻿const jwt = require('jsonwebtoken')
 const User = require('../models/User.cjs')
 
 const protect = async (req, res, next) => {
@@ -33,7 +33,14 @@ const protect = async (req, res, next) => {
       })
     }
 
-    req.user = { id: user._id.toString(), email: user.email }
+    req.user = {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      showUsername: user.showUsername,
+      color: user.color,
+      moderator: user.moderator === true
+    }
     next()
   } catch (error) {
     console.warn('❌ Ошибка проверки токена:', error.message)
@@ -44,4 +51,16 @@ const protect = async (req, res, next) => {
   }
 }
 
+// Только для модераторов (req.user.moderator === true)
+const requireModerator = (req, res, next) => {
+  if (!req.user?.moderator) {
+    return res.status(403).json({
+      success: false,
+      message: 'Доступ запрещён: требуются права модератора'
+    })
+  }
+  next()
+}
+
 module.exports = protect
+module.exports.requireModerator = requireModerator
