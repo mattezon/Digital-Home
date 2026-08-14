@@ -138,9 +138,9 @@ const useAuthStore = create((set, get) => ({
     })
   },
 
-  // Обновить профиль (юзернейм + как отображать имя)
-  updateProfile: async ({ username, showUsername } = {}) => {
-    set({ isLoading: true, error: null })
+  // Обновить профиль (юзернейм + как отображать имя + цвет)
+  updateProfile: async ({ username, showUsername, color } = {}) => {
+    set({ error: null })
 
     const payload = {}
     if (username !== undefined && username !== null && String(username).trim()) {
@@ -148,6 +148,9 @@ const useAuthStore = create((set, get) => ({
     }
     if (typeof showUsername === 'boolean') {
       payload.showUsername = showUsername
+    }
+    if (color !== undefined && color !== null && String(color).trim()) {
+      payload.color = String(color).trim()
     }
 
     try {
@@ -163,14 +166,13 @@ const useAuthStore = create((set, get) => ({
 
         set({
           user: updatedUser,
-          isLoading: false,
           error: null
         })
         return { success: true }
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Ошибка при обновлении профиля'
-      set({ error: message, isLoading: false })
+      set({ error: message })
       return { success: false, message }
     }
   },

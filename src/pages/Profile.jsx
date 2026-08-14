@@ -5,11 +5,25 @@ import PostCard from '../components/PostCard'
 import { getAuthorDisplayName } from '../utils/userName'
 import './Profile.css'
 
+const PRESET_COLORS = [
+  '#2f5dff', // синий (по умолчанию)
+  '#4f46e5', // индиго
+  '#7c3aed', // фиолетовый
+  '#db2777', // розовый
+  '#dc2626', // красный
+  '#ea580c', // оранжевый
+  '#d97706', // янтарный
+  '#059669', // зелёный
+  '#0d9488', // бирюзовый
+  '#0891b2'  // голубой
+]
+
 const Profile = () => {
   const { user, logout, updateProfile } = useAuthStore()
   const { posts, fetchPosts, deletePost, isLoading } = usePostsStore()
   const [username, setUsername] = useState('')
   const [showUsername, setShowUsername] = useState(user?.showUsername ?? true)
+  const [color, setColor] = useState(user?.color || PRESET_COLORS[0])
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState('')
 
@@ -21,8 +35,9 @@ const Profile = () => {
     if (user) {
       setUsername(user.username || '')
       setShowUsername(user.showUsername ?? true)
+      setColor(user.color || PRESET_COLORS[0])
     }
-  }, [user?.username, user?.showUsername])
+  }, [user?.username, user?.showUsername, user?.color])
 
   const handleSaveUsername = async (event) => {
     event.preventDefault()
@@ -52,6 +67,19 @@ const Profile = () => {
     } else {
       setShowUsername(!checked)
       setFeedback(result.message || 'Не удалось сохранить настройку')
+    }
+  }
+
+  const handleColorChange = async (value) => {
+    setColor(value)
+    setFeedback('')
+    const result = await updateProfile({ color: value })
+
+    if (result.success) {
+      setFeedback('Цвет сохранён. Другие увидят его на ваших постах и в сообщениях.')
+    } else {
+      setColor(user?.color || PRESET_COLORS[0])
+      setFeedback(result.message || 'Не удалось сохранить цвет')
     }
   }
 
@@ -122,28 +150,64 @@ const Profile = () => {
             <span>Показывать мой юзернейм вместо почты на постах и в сообщениях</span>
           </label>
 
+          <div className="profile-card__color">
+            <span className="profile-card__label">Ваш цвет</span>
+            <div className="profile-card__color-palette">
+              {PRESET_COLORS.map((presetColor) => (
+                <button
+                  key={presetColor}
+                  type="button"
+                  className={`profile-card__swatch ${color === presetColor ? 'active' : ''}`}
+                  style={{ background: presetColor }}
+                  aria-label={`Цвет ${presetColor}`}
+                  onClick={() => handleColorChange(presetColor)}
+                />
+              ))}
+              <label className="profile-card__custom">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(event) => handleColorChange(event.target.value)}
+                />
+                <span>Свой</span>
+              </label>
+            </div>
+            <small className="profile-card__hint">
+              Этот цвет увидят другие: он появится на обводке ваших постов и в ваших сообщениях в чатах.
+            </small>
+          </div>
+
           {feedback && <p className="profile-card__form-message">{feedback}</p>}
         </form>
       </section>
 
       <section className="profile-posts">
         <h2>Ваши посты</h2>
-        {isLoading && <p>Загрузка постов...</p>}
+        {isLoading && (
+          <div className="app-loading app-loading--inline">
+            <div className="app-loading__spinner" />
+            <div className="app-loading__text">Загрузка постов...</div>
+          </div>
+        )}
         {!isLoading && userPosts.length === 0 && (
           <p>У вас ещё нет постов. Создайте первый в ленте.</p>
         )}
-        {!isLoading && userPosts.map(post => (
-          <PostCard
-            key={post._id}
-            post={{
-              ...post,
-              avatar: '👤',
-              author: getAuthorDisplayName(post.author)
-            }}
-            isOwner={true}
-            onDelete={() => deletePost(post._id)}
-          />
-        ))}
+        {!isLoading && userPosts.map(post => {
+          const rawAuthor = post.author
+          return (
+            <PostCard
+              key={post._id}
+              post={{
+                ...post,
+                avatar: '👤',
+                author: getAuthorDisplayName(rawAuthor)
+              }}
+              accentColor={rawAuthor?.color}
+              isOwner={true}
+              onDelete={() => deletePost(post._id)}
+            />
+          )
+        })}
       </section>
     </main>
   )

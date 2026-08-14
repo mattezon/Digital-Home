@@ -81,7 +81,8 @@ exports.register = async (req, res) => {
         email: newUser.email,
         username: newUser.username,
         displayName: newUser.displayName || newUser.username,
-        showUsername: newUser.showUsername ?? true
+        showUsername: newUser.showUsername ?? true,
+        color: newUser.color || null
       }
     });
   } catch (error) {
@@ -132,7 +133,8 @@ exports.login = async (req, res) => {
         email: user.email,
         username: user.username || user.email.split('@')[0],
         displayName: user.displayName || user.username || user.email.split('@')[0],
-        showUsername: user.showUsername ?? true
+        showUsername: user.showUsername ?? true,
+        color: user.color || null
       }
     });
   } catch (error) {
@@ -181,7 +183,8 @@ exports.refreshToken = async (req, res) => {
         email: user.email,
         username: user.username || user.email.split('@')[0],
         displayName: user.displayName || user.username || user.email.split('@')[0],
-        showUsername: user.showUsername ?? true
+        showUsername: user.showUsername ?? true,
+        color: user.color || null
       }
     });
   } catch (error) {
@@ -216,7 +219,7 @@ exports.logout = (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { username, showUsername } = req.body;
+    const { username, showUsername, color } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -225,8 +228,9 @@ exports.updateProfile = async (req, res) => {
 
     const hasUsername = username !== undefined && username !== null && String(username).trim().length > 0;
     const hasShowUsername = typeof showUsername === 'boolean';
+    const hasColor = color !== undefined && color !== null && String(color).trim().length > 0;
 
-    if (!hasUsername && !hasShowUsername) {
+    if (!hasUsername && !hasShowUsername && !hasColor) {
       return res.status(400).json({ success: false, message: 'Нет данных для обновления' });
     }
 
@@ -258,6 +262,14 @@ exports.updateProfile = async (req, res) => {
       user.showUsername = showUsername;
     }
 
+    if (hasColor) {
+      const normalizedColor = String(color).trim();
+      if (!/^#[0-9a-fA-F]{6}$/.test(normalizedColor)) {
+        return res.status(400).json({ success: false, message: 'Некорректный формат цвета' });
+      }
+      user.color = normalizedColor;
+    }
+
     await user.save();
 
     return res.json({
@@ -268,7 +280,8 @@ exports.updateProfile = async (req, res) => {
         email: user.email,
         username: user.username,
         displayName: user.displayName || user.username,
-        showUsername: user.showUsername ?? true
+        showUsername: user.showUsername ?? true,
+        color: user.color || null
       }
     });
   } catch (error) {

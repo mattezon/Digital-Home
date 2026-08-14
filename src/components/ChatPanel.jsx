@@ -414,6 +414,7 @@ const ChatPanel = () => {
                     <div
                       key={message.id}
                       className={`chat-panel__message ${message.sender?.id === user?.id ? 'self' : ''}`}
+                      style={{ borderColor: message.sender?.color || undefined }}
                     >
                       <span>{message.sender ? getAuthorDisplayName(message.sender) : 'User'}</span>
                       <p>{message.text}</p>

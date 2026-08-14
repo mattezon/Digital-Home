@@ -13,7 +13,12 @@ const PostList = () => {
   }, [])
 
   if (isLoading) {
-    return <div style={{ padding: '20px', textAlign: 'center' }}>Загрузка постов...</div>
+    return (
+      <div className="app-loading app-loading--inline">
+        <div className="app-loading__spinner" />
+        <div className="app-loading__text">Загрузка постов...</div>
+      </div>
+    )
   }
 
   if (posts.length === 0) {
@@ -24,6 +29,7 @@ const PostList = () => {
     <div>
       {posts.map((post) => {
         const isOwner = post.author?._id?.toString() === user?.id
+        const rawAuthor = post.author
 
         return (
           <PostCard 
@@ -31,8 +37,9 @@ const PostList = () => {
             post={{
               ...post,
               avatar: '👤',
-              author: getAuthorDisplayName(post.author)
+              author: getAuthorDisplayName(rawAuthor)
             }}
+            accentColor={rawAuthor?.color}
             isOwner={isOwner}
             onDelete={isOwner ? () => deletePost(post._id) : undefined}
           />

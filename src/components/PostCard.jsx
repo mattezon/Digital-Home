@@ -13,7 +13,7 @@ const reactionIcons = {
   angry: '😡'
 }
 
-const PostCard = ({ post, isOwner, onDelete }) => {
+const PostCard = ({ post, isOwner, onDelete, accentColor }) => {
   const { user } = useAuthStore()
   const { commentsByPost, fetchComments, createComment, deleteComment, reactToPost, getUserReaction, userReactions } = usePostsStore()
   const [commentsOpen, setCommentsOpen] = useState(false)
@@ -68,7 +68,7 @@ const PostCard = ({ post, isOwner, onDelete }) => {
   }
 
   return (
-    <div className="post-card">
+    <div className="post-card" style={{ borderColor: accentColor || undefined }}>
       <div className="post-card__header">
         <div className="post-card__avatar">
           <span role="img" aria-label="avatar">{post.avatar}</span>

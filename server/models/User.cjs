@@ -30,6 +30,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    color: {
+      type: String,
+      trim: true,
+      default: null
+    },
     password: {
       type: String,
       required: [true, 'Пожалуйста, укажите пароль'],

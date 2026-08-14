@@ -61,7 +61,7 @@ exports.createPost = async (req, res) => {
       image: image || null
     });
 
-    await post.populate('author', '_id email username displayName showUsername');
+    await post.populate('author', '_id email username displayName showUsername color');
 
     console.log(`✅ Создан пост от ${user.email}: "${text.substring(0, 50)}..."`);
 
@@ -85,7 +85,7 @@ exports.createPost = async (req, res) => {
 exports.getAllPosts = async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate('author', '_id email username displayName showUsername')
+      .populate('author', '_id email username displayName showUsername color')
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -107,7 +107,7 @@ exports.getAllPosts = async (req, res) => {
 // @access  Public
 exports.getPost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate('author', '_id email username displayName showUsername');
+    const post = await Post.findById(req.params.id).populate('author', '_id email username displayName showUsername color');
 
     if (!post) {
       return res.status(404).json({
@@ -237,7 +237,7 @@ exports.getUserReaction = async (req, res) => {
 exports.getComments = async (req, res) => {
   try {
     const comments = await Comment.find({ post: req.params.id })
-      .populate('author', '_id email username displayName showUsername')
+      .populate('author', '_id email username displayName showUsername color')
       .sort({ createdAt: 1 });
 
     return res.status(200).json({
@@ -285,7 +285,7 @@ exports.createComment = async (req, res) => {
     post.comments += 1;
     await post.save();
 
-    await comment.populate('author', '_id email username displayName showUsername');
+    await comment.populate('author', '_id email username displayName showUsername color');
 
     console.log(`💬 Комментарий на пост ${req.params.id}`);
 
@@ -392,7 +392,7 @@ exports.reactPost = async (req, res) => {
       }
 
       await post.save();
-      await post.populate('author', '_id email username displayName showUsername');
+      await post.populate('author', '_id email username displayName showUsername color');
 
       console.log(`🚫 Снята реакция с поста ${req.params.id} пользователем ${userId}`);
 
@@ -419,7 +419,7 @@ exports.reactPost = async (req, res) => {
     // Если новая реакция — это та же самая реакция, то просто оставляем
     if (previousReaction === type) {
       await post.save();
-      await post.populate('author', '_id email username displayName showUsername');
+      await post.populate('author', '_id email username displayName showUsername color');
 
       return res.status(200).json({
         success: true,
@@ -439,7 +439,7 @@ exports.reactPost = async (req, res) => {
     }
 
     await post.save();
-    await post.populate('author', '_id email username displayName showUsername');
+    await post.populate('author', '_id email username displayName showUsername color');
 
     console.log(`🎯 Реакция ${type} на пост ${req.params.id} от пользователя ${userId}`);
 
@@ -494,7 +494,7 @@ exports.likePost = async (req, res) => {
     }
 
     await post.save();
-    await post.populate('author', '_id email username displayName showUsername');
+    await post.populate('author', '_id email username displayName showUsername color');
 
     console.log(`👍 Лайк на пост ${req.params.id} от пользователя ${userId}`);
 

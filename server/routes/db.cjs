@@ -32,7 +32,7 @@ router.get('/stats', async (req, res) => {
 // @access  Public
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.find({}, '_id email username displayName showUsername');
+    const users = await User.find({}, '_id email username displayName showUsername color');
 
     res.status(200).json({
       success: true,
@@ -53,7 +53,7 @@ router.get('/users', async (req, res) => {
 router.get('/posts', async (req, res) => {
   try {
     const posts = await Post.find()
-      .populate('author', '_id email username displayName showUsername')
+      .populate('author', '_id email username displayName showUsername color')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

@@ -9,7 +9,7 @@ import Dashboard from './pages/Dashboard'
 import './App.css'
 
 function App() {
-  const { isAuthenticated, isLoading, refreshToken, token } = useAuthStore()
+  const { isAuthenticated, isLoading, refreshToken, token, user } = useAuthStore()
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light')
 
   useEffect(() => {
@@ -23,12 +23,26 @@ function App() {
     localStorage.setItem('theme', theme)
   }, [theme])
 
+  // Персональный акцентный цвет (обводки, кнопки и т.п.) текущего пользователя
+  useEffect(() => {
+    if (user?.color) {
+      document.documentElement.style.setProperty('--user-accent', user.color)
+    } else {
+      document.documentElement.style.setProperty('--user-accent', 'var(--primary)')
+    }
+  }, [user?.color])
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
   if (isLoading) {
-    return <div className="app-loading">Загрузка...</div>
+    return (
+      <div className="app-loading">
+        <div className="app-loading__spinner" />
+        <div className="app-loading__text">Загрузка...</div>
+      </div>
+    )
   }
 
   return (

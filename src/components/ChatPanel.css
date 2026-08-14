@@ -53,7 +53,7 @@
 .chat-panel__composer button {
   border: none;
   border-radius: 12px;
-  background: var(--primary);
+  background: var(--user-accent, var(--primary));
   color: var(--primary-contrast);
   padding: 12px 14px;
   font-weight: 600;
@@ -147,7 +147,7 @@
   height: 28px;
   border-radius: 50%;
   background: rgba(47, 93, 255, 0.12);
-  color: var(--primary);
+  color: var(--user-accent, var(--primary));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -283,7 +283,7 @@
 }
 
 .chat-panel__select-hint {
-  color: var(--primary);
+  color: var(--user-accent, var(--primary));
   font-size: 11px;
   font-weight: 600;
 }

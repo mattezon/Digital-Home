@@ -10,7 +10,8 @@ const serializeUser = (user) => ({
   email: user?.email || '',
   username: user?.username || user?.email?.split('@')[0] || '',
   displayName: user?.displayName || user?.email?.split('@')[0] || '',
-  showUsername: user?.showUsername ?? true
+  showUsername: user?.showUsername ?? true,
+  color: user?.color || null
 });
 
 const serializeLastMessage = (lastMessage) => {
@@ -50,8 +51,8 @@ exports.getChats = async (req, res) => {
     const userId = req.user?.id;
 
     const chats = await Chat.find({ participants: userId })
-      .populate('participants', '_id email username displayName showUsername')
-      .populate({ path: 'lastMessage', populate: { path: 'sender', select: '_id email username displayName showUsername' } })
+      .populate('participants', '_id email username displayName showUsername color')
+      .populate({ path: 'lastMessage', populate: { path: 'sender', select: '_id email username displayName showUsername color' } })
       .sort({ updatedAt: -1 });
 
     return res.json({
@@ -80,10 +81,10 @@ exports.searchUsersAndChats = async (req, res) => {
 
     const users = await User.find({ _id: { $ne: currentUserId }, ...userFilter })
       .limit(10)
-      .select('_id email username displayName showUsername');
+      .select('_id email username displayName showUsername color');
 
     const existingChats = await Chat.find({ participants: currentUserId })
-      .populate('participants', '_id email username displayName showUsername');
+      .populate('participants', '_id email username displayName showUsername color');
 
     const matchedChats = safeQuery ? matchChatSearch(q, existingChats, currentUserId).matches : [];
 
@@ -142,7 +143,7 @@ exports.createDirectChat = async (req, res) => {
     const existing = await Chat.findOne({
       type: 'direct',
       participants: { $all: [currentUserId, userId], $size: 2 }
-    }).populate('participants', '_id email username displayName showUsername');
+    }).populate('participants', '_id email username displayName showUsername color');
 
     if (existing) {
       return res.status(200).json({ success: true, chat: serializeChat(existing, currentUserId), created: false });
@@ -155,7 +156,7 @@ exports.createDirectChat = async (req, res) => {
       createdBy: currentUserId
     });
 
-    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName showUsername');
+    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName showUsername color');
     return res.status(201).json({ success: true, chat: serializeChat(populated, currentUserId), created: true });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -180,7 +181,7 @@ exports.createGroupChat = async (req, res) => {
       createdBy: currentUserId
     });
 
-    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName showUsername');
+    const populated = await Chat.findById(chat._id).populate('participants', '_id email username displayName showUsername color');
     return res.status(201).json({ success: true, chat: serializeChat(populated, currentUserId), created: true });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -198,7 +199,7 @@ exports.getChatMessages = async (req, res) => {
     }
 
     const messages = await Message.find({ chat: chatId })
-      .populate('sender', '_id email username displayName showUsername')
+      .populate('sender', '_id email username displayName showUsername color')
       .sort({ createdAt: 1 });
 
     return res.json({
@@ -246,7 +247,7 @@ exports.sendMessage = async (req, res) => {
           .map((participant) => String(participant))
           .find((id) => id !== String(userId));
         const otherUser = otherParticipantId
-          ? await User.findById(otherParticipantId).select('_id email username displayName showUsername')
+          ? await User.findById(otherParticipantId).select('_id email username displayName showUsername color')
           : null;
         chat.title = getUserName(otherUser) || 'Новый чат';
       } else {
@@ -257,7 +258,7 @@ exports.sendMessage = async (req, res) => {
     chat.updatedAt = new Date();
     await chat.save();
 
-    const populated = await Message.findById(message._id).populate('sender', '_id email username displayName showUsername');
+    const populated = await Message.findById(message._id).populate('sender', '_id email username displayName showUsername color');
     const payload = {
       id: populated._id.toString(),
       text: populated.text,

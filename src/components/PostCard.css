@@ -5,6 +5,8 @@
   margin-bottom: 18px;
   color: var(--text);
   box-shadow: 0 2px 10px var(--card-shadow);
+  border: 2px solid var(--border);
+  transition: border-color 0.2s;
 }
 
 .post-card__header {
@@ -23,7 +25,7 @@
   align-items: center;
   justify-content: center;
   font-size: 1.7rem;
-  color: var(--primary);
+  color: var(--user-accent, var(--primary));
 }
 
 .post-card__info {
@@ -38,7 +40,7 @@
 }
 
 .post-card__verified {
-  color: var(--primary);
+  color: var(--user-accent, var(--primary));
   font-size: 1rem;
   margin-left: 4px;
 }
@@ -108,13 +110,13 @@
 }
 
 .post-card__reaction.active {
-  background: var(--primary);
+  background: var(--user-accent, var(--primary));
   color: var(--primary-contrast);
-  border-color: var(--primary);
+  border-color: var(--user-accent, var(--primary));
 }
 
 .post-card__reaction.active:hover {
-  background: var(--primary);
+  background: var(--user-accent, var(--primary));
 }
 
 .post-card__share {
@@ -150,7 +152,7 @@
 .post-card__comment-submit {
   padding: 10px 16px;
   border: none;
-  background: var(--primary);
+  background: var(--user-accent, var(--primary));
   color: var(--primary-contrast);
   border-radius: 12px;
   cursor: pointer;
@@ -203,7 +205,7 @@
 
 .post-card__comment-tag {
   background: rgba(76, 122, 255, 0.12);
-  color: var(--primary);
+  color: var(--user-accent, var(--primary));
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 0.8rem;
