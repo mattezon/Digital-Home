@@ -5,6 +5,7 @@ import { getAuthorDisplayName } from '../utils/userName'
 import './UsersList.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+const PAGE_SIZE = 20
 
 const getInitials = (user) => {
   const name = getAuthorDisplayName(user) || ''
@@ -25,30 +26,54 @@ const UsersList = () => {
   const currentId = currentUser?._id ?? currentUser?.id
   const [isOpen, setIsOpen] = useState(false)
   const [users, setUsers] = useState([])
+  const [skip, setSkip] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const listRef = useRef(null)
   const btnRef = useRef(null)
 
-  const fetchUsers = async () => {
-    if (users.length > 0) return
-    setLoading(true)
+  const fetchPage = async (offset, append) => {
+    append ? setLoadingMore(true) : setLoading(true)
     try {
-      const { data } = await axios.get(`${API_BASE}/api/db/users`)
-      if (data?.success) setUsers(data.users || [])
+      const { data } = await axios.get(`${API_BASE}/api/db/users`, {
+        params: { skip: offset, limit: PAGE_SIZE }
+      })
+      if (data?.success) {
+        const chunk = data.users || []
+        setUsers((prev) => append ? [...prev, ...chunk] : chunk)
+        setHasMore(Boolean(data.hasMore))
+        setSkip(offset + chunk.length)
+      }
     } catch (error) {
-      console.warn('Не удалось загрузить список пользователей:', error)
+      console.warn('Не удалось загрузить пользователей:', error)
     } finally {
-      setLoading(false)
+      append ? setLoadingMore(false) : setLoading(false)
     }
   }
 
-  const toggle = () => setIsOpen((prev) => !prev)
+  const toggle = () => {
+    if (isOpen) {
+      setIsOpen(false)
+    } else {
+      // сбрасываем состояние листа и грузим первую страницу заново
+      setUsers([])
+      setSkip(0)
+      setHasMore(true)
+      setIsOpen(true)
+    }
+  }
   const close = () => setIsOpen(false)
+
+  // Загрузка первой страницы при открытии
+  useEffect(() => {
+    if (!isOpen) return
+    if (users.length === 0) fetchPage(0, false)
+  }, [isOpen, users.length])
 
   // ESC + клик-наружу
   useEffect(() => {
     if (!isOpen) return
-    fetchUsers()
 
     const onKey = (e) => {
       if (e.key === 'Escape') close()
@@ -63,15 +88,23 @@ const UsersList = () => {
         close()
       }
     }
+    const onScroll = () => {
+      const el = listRef.current
+      if (!el || !hasMore || loadingMore) return
+      const { scrollTop, scrollHeight, clientHeight } = el
+      if (scrollHeight - scrollTop - clientHeight < 48) {
+        fetchPage(skip, true)
+      }
+    }
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onClick)
+    listRef.current?.addEventListener('scroll', onScroll)
     return () => {
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('mousedown', onClick)
+      listRef.current?.removeEventListener('scroll', onScroll)
     }
-  }, [isOpen])
-
-  const allUsers = users || []
+  }, [isOpen, hasMore, loadingMore, skip])
 
   return (
     <>
@@ -86,7 +119,7 @@ const UsersList = () => {
       {isOpen && (
         <div ref={listRef} className="users-list__popover">
           <div className="users-list__header">
-            <span>Все пользователи ({users.length})</span>
+            <span>Пользователи ({users.length})</span>
             <button
               type="button"
               className="users-list__close"
@@ -98,11 +131,11 @@ const UsersList = () => {
           </div>
           {loading ? (
             <div className="users-list__loading">Загрузка…</div>
-          ) : allUsers.length === 0 ? (
+          ) : users.length === 0 ? (
             <div className="users-list__empty">Пока нет пользователей</div>
           ) : (
             <ul className="users-list__items">
-              {allUsers.map((u) => {
+              {users.map((u) => {
                 const name = getAuthorDisplayName(u)
                 const isMe = String(u?._id) === String(currentId)
                 return (
@@ -126,6 +159,9 @@ const UsersList = () => {
                 )
               })}
             </ul>
+          )}
+          {loadingMore && (
+            <div className="users-list__loading-more">Дозагрузка…</div>
           )}
         </div>
       )}

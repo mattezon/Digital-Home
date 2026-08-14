@@ -28,15 +28,37 @@ router.get('/stats', async (req, res) => {
 });
 
 // @desc    Получить всех пользователей (скрывая пароли)
-// @route   GET /api/db/users
+// @route   GET /api/db/users?skip=0&limit=20
 // @access  Public
 router.get('/users', async (req, res) => {
   try {
-    const users = await User.find({}, '_id email username displayName showUsername color');
+    const filter = {};
+
+    // Опциональная пагинация: если задан limit — работаем как «порция».
+    // Без limit возвращаем всех (обратная совместимость).
+    const limit = parseInt(req.query.limit, 10);
+    const skip = parseInt(req.query.skip, 10);
+
+    let query = User.find(filter, '_id email username displayName showUsername color');
+
+    if (!Number.isNaN(limit)) {
+      query = query.sort({ createdAt: -1, _id: 1 }).skip(Number.isNaN(skip) ? 0 : skip).limit(limit + 1);
+    }
+
+    const docs = await query.exec();
+
+    let users = docs;
+    let hasMore = false;
+    if (!Number.isNaN(limit)) {
+      hasMore = docs.length > limit;
+      users = hasMore ? docs.slice(0, limit) : docs;
+    }
 
     res.status(200).json({
       success: true,
       count: users.length,
+      total: users.length,
+      hasMore: !Number.isNaN(limit) ? hasMore : false,
       users
     });
   } catch (error) {
