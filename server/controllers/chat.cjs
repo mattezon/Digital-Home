@@ -1,6 +1,7 @@
 const Chat = require('../models/Chat.cjs');
 const Message = require('../models/Message.cjs');
 const User = require('../models/User.cjs');
+const mongoose = require('mongoose');
 const { normalizeChatQuery, matchChatSearch } = require('../utils/chatSearch.cjs');
 
 const escapeRegex = (value = '') => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -55,9 +56,68 @@ exports.getChats = async (req, res) => {
       .populate({ path: 'lastMessage', populate: { path: 'sender', select: '_id email username displayName showUsername color' } })
       .sort({ updatedAt: -1 });
 
+    // Mongoose «выкидывает» мёртвые ссылки из participants после populate,
+    // поэтому берём настоящий состав участников отдельным «сырым» запросом.
+    const leanChats = await Chat.find({ _id: { $in: chats.map((c) => c._id) } })
+      .select('participants')
+      .lean();
+    const rawParticipantMap = new Map(
+      leanChats.map((d) => [d._id.toString(), d.participants.map((p) => p.toString())])
+    );
+
+    // Собираем id всех участников, чтобы понять, какие пользователи ещё существуют
+    const rawParticipantIds = Array.from(rawParticipantMap.values()).flat();
+
+    const existingSet = new Set(
+      (await User.find({ _id: { $in: rawParticipantIds } }).select('_id')).map((u) => u._id.toString())
+    );
+
+    const toDeleteIds = [];
+    const cleanedChats = [];
+
+    for (const chat of chats) {
+      const participantIds = rawParticipantMap.get(chat._id.toString()) || [];
+
+      // Участники, которых больше нет (не считая текущего пользователя)
+      const missing = participantIds.filter((id) => id && id !== String(userId) && !existingSet.has(id));
+
+      if (missing.length === 0) {
+        cleanedChats.push(chat);
+        continue;
+      }
+
+      if (chat.type === 'group') {
+        // после populate участники уже «вычищены» от мёртвых ссылок,
+        // достаточно проверить, что осталось минимум 2 живых участника
+        chat.participants = (chat.participants || []).filter((participant) => {
+          const id =
+            participant instanceof mongoose.Types.ObjectId
+              ? participant.toString()
+              : participant?._id?.toString?.();
+          return id && existingSet.has(id);
+        });
+
+        if (chat.participants.length < 2) {
+          toDeleteIds.push(chat._id);
+        } else {
+          await chat.save();
+          cleanedChats.push(chat);
+        }
+      } else {
+        // Direct-чат без живого собеседника — удаляем
+        toDeleteIds.push(chat._id);
+      }
+    }
+
+    if (toDeleteIds.length) {
+      await Message.deleteMany({ chat: { $in: toDeleteIds } });
+      await Chat.deleteMany({ _id: { $in: toDeleteIds } });
+    }
+
     return res.json({
       success: true,
-      chats: chats.map((chat) => serializeChat(chat, userId))
+      chats: cleanedChats.map((chat) => serializeChat(chat, userId)),
+      removedChatIds: toDeleteIds.map((id) => id.toString())
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

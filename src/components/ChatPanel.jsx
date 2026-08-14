@@ -62,14 +62,24 @@ const ChatPanel = () => {
     return chat.title || 'Чат'
   }
 
+  const isChatUsable = (chat) => {
+    if (!chat) return false
+    if (chat.type !== 'direct') return true
+    if (chat.title) return true
+    const other = (chat.participants || []).find((p) => p?.id && p.id !== user?.id)
+    return Boolean(other && (other.displayName || other.username || other.email))
+  }
+
   const refreshChats = async () => {
     try {
       const response = await axios.get('/api/chats')
       if (response.data.success) {
-        const nextChats = response.data.chats || []
+        const nextChats = (response.data.chats || []).filter(isChatUsable)
         setChats(nextChats)
 
-        if (!activeChatId && nextChats.length) {
+        if (activeChatIdRef.current && !nextChats.some((chat) => chat.id === activeChatIdRef.current)) {
+          setActiveChatId(nextChats[0]?.id || null)
+        } else if (!activeChatIdRef.current && nextChats.length) {
           setActiveChatId(nextChats[0].id)
         }
       }
