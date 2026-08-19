@@ -54,7 +54,9 @@
   background: var(--input-bg);
   color: var(--input-text);
   font-size: 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .field input:focus {
@@ -101,7 +103,9 @@
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease;
 }
 
 .button:hover:not(:disabled) {
@@ -145,4 +149,43 @@
   .button {
     width: 100%;
   }
+}
+
+/* --- Форма заявки на сброс пароля --- */
+.forgot-form {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  gap: 16px;
+}
+
+.forgot-form h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+.forgot-form p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.forgot-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.success-message {
+  padding: 12px 14px;
+  background: var(--success-bg, rgba(188, 235, 188, 0.25));
+  border: 1px solid rgba(188, 235, 188, 0.7);
+  border-radius: 14px;
+  color: var(--success, #2e7d32);
+  font-size: 0.95rem;
 }

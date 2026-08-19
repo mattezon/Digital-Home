@@ -1,6 +1,7 @@
 const Post = require('../models/Post.cjs');
 const User = require('../models/User.cjs');
 const Message = require('../models/Message.cjs');
+const PasswordResetRequest = require('../models/PasswordResetRequest.cjs');
 
 const DEFAULT_LIMIT = 20;
 const USER_FIELDS = '_id email username displayName showUsername color moderator createdAt';
@@ -156,3 +157,79 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Сменить пароль пользователя (модератором)
+// @route   PUT /api/users/:id/password
+// @access  Moderator
+exports.resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ success: false, message: 'Пароль должен быть не короче 6 символов' });
+    }
+    const user = await User.findById(req.params.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' });
+    }
+    user.password = String(password);
+    await user.save();
+    res.status(200).json({ success: true, message: 'Пароль обновлён' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// @desc    Список заявок на сброс пароля
+// @route   GET /api/users/reset-requests
+// @access  Moderator
+exports.getResetRequests = async (req, res) => {
+  try {
+    const requests = await PasswordResetRequest.find({})
+      .populate('user', '_id email username displayName color moderator')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: requests.length,
+      requests: requests.map((r) => ({
+        id: r._id,
+        email: r.email,
+        status: r.status,
+        createdAt: r.createdAt,
+        handledBy: r.handledBy ? String(r.handledBy) : null,
+        user: r.user ? {
+          id: r.user._id,
+          email: r.user.email,
+          username: r.user.username,
+          displayName: r.user.displayName,
+          color: r.user.color,
+          moderator: r.user.moderator === true
+        } : null
+      }))
+    });
+  } catch (error) {
+    console.error('Get reset requests error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Отметить заявку выполненной
+// @route   PUT /api/users/reset-requests/:id
+// @access  Moderator
+exports.markResetRequestDone = async (req, res) => {
+  try {
+    const request = await PasswordResetRequest.findById(req.params.id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Заявка не найдена' });
+    }
+    request.status = 'done';
+    request.handledBy = req.user?.id || null;
+    await request.save();
+
+    res.status(200).json({ success: true, message: 'Заявка обработана' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

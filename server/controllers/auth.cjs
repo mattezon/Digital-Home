@@ -1,4 +1,5 @@
 ﻿const User = require('../models/User.cjs');
+const PasswordResetRequest = require('../models/PasswordResetRequest.cjs');
 const jwt = require('jsonwebtoken');
 
 const DEFAULT_ACCESS_EXPIRE = '14d';
@@ -294,3 +295,28 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Отправить заявку на сброс пароля администратору
+// @route   POST /api/auth/forgot-password
+// @access  Public
+exports.forgotPassword = async (req, res) => {
+  try {
+    const email = (req.body.email || '').trim().toLowerCase();
+
+    // Не раскрываем, какой email существует в системе
+    const user = await User.findOne({ email });
+    if (user) {
+      const existing = await PasswordResetRequest.findOne({ user: user._id, status: 'pending' });
+      if (!existing) {
+        await PasswordResetRequest.create({ user: user._id, email });
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Заявка отправлена. Администратор свяжется с вами для сброса пароля.'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ success: false, message: 'Ошибка при отправке заявки' });
+  }
+};
