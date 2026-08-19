@@ -1,7 +1,8 @@
 ﻿import { useState } from 'react'
 import Sidebar from '../components/Sidebar'
 import PostCreator from '../components/PostCreator'
-import PostList from '../components/PostList'
+import FeedList from '../components/FeedList'
+import ProjectsSection from '../components/ProjectsSection'
 import Profile from './Profile'
 import ChatPanel from '../components/ChatPanel'
 import UsersList from '../components/UsersList'
@@ -22,13 +23,17 @@ const MainPage = ({ theme, toggleTheme }) => {
         {activeTab === 'feed' && (
           <>
             <PostCreator />
-            <PostList />
+            <FeedList />
             <UsersList />
           </>
         )}
 
         {activeTab === 'messages' && (
           <ChatPanel />
+        )}
+
+        {activeTab === 'projects' && (
+          <ProjectsSection />
         )}
 
         {activeTab === 'profile' && (

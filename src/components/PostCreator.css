@@ -35,6 +35,57 @@
   background: var(--user-accent, var(--primary));
 }
 
+/* Кнопка переключения на опрос */
+.post-creator__toggle {
+  border: 1px solid var(--border);
+  background: var(--card-bg, #f3f4f6);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-creator__toggle:hover {
+  background: var(--hover-bg, #e5e7eb);
+  transform: scale(1.05);
+}
+
+/* Режим создания опроса */
+.post-creator__poll-mode {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 24px;
+  border: 2px solid var(--user-accent, var(--primary));
+}
+
+.post-creator__poll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.post-creator__close-poll {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  color: var(--text-secondary, #6b7280);
+  transition: color 0.2s;
+}
+
+.post-creator__close-poll:hover {
+  color: var(--danger, #ef4444);
+}
+
 @media (max-width: 900px) {
   .post-creator {
     flex-direction: column;
@@ -48,5 +99,10 @@
   .post-creator__btn {
     width: 100%;
     padding: 14px 16px;
+  }
+
+  .post-creator__toggle {
+    width: 100%;
+    justify-content: center;
   }
 }

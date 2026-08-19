@@ -120,8 +120,10 @@ const startServer = async () => {
     });
 
     // Маршруты API
-    app.use('/api/auth', authLimiter, require('./routes/auth.cjs'));
-        app.use('/api/posts', require('./routes/posts.cjs'));
+            app.use('/api/auth', authLimiter, require('./routes/auth.cjs'));
+    app.use('/api/posts', require('./routes/posts.cjs'));
+    app.use('/api/projects', require('./routes/projects.cjs'));
+    app.use('/api/polls', require('./routes/polls.cjs'));
     app.use('/api/chats', require('./routes/chat.cjs'));
     app.use('/api/db', require('./routes/db.cjs'));
     app.use('/api/users', require('./routes/users.cjs'));
